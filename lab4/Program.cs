@@ -17,12 +17,6 @@ namespace lab4
 
     class CHospital
     {
-        private List<string> firstTherapistPatientsQueue;
-        private List<string> secondTherapistPatientsQueue;
-        private List<string> dentistQueue;
-        private List<string> surgeonQueue;
-        private List<string> therapistQueue;
-
         private const int COUNT_DOCTORS = 3;
 
         private Thread firstTherapistThread;
@@ -31,34 +25,34 @@ namespace lab4
         private Thread therapistThread;
         private Thread surgeonThread;
 
-        private const string SURGEON = "surgeon";
-        private const string THERAPIST = "therapist";
-        private const string DENTIST = "dentist";
-
         private int number = 0;
 
         public CHospital()
         {
-            firstTherapistPatientsQueue = new List<string>();
-            secondTherapistPatientsQueue = new List<string>();
-            dentistQueue = new List<string>();
-            surgeonQueue = new List<string>();
-            therapistQueue = new List<string>(); 
 
             DefineTherapist();
 
         }
         private void DefineTherapist()
         {
-            firstTherapistThread = new Thread(SendToTreatingDoctorFromFirstTherapist);
-            secondTherapistThread = new Thread(SendToTreatingDoctorFromSecondTherapist);
 
-            dentistThread = new Thread(ReceptionAtDentist);
-            therapistThread = new Thread(ReceptionAtTherapist);
-            surgeonThread = new Thread(ReceptionAtSurgeon);
+            CDoctor therapist = new CDoctor();
+            CDoctor surgeon = new CDoctor();
+            CDoctor dentist = new CDoctor();
+
+            CTherapist firstTherapist = new CTherapist(therapist, surgeon, dentist);
+            CTherapist secondTherapist = new CTherapist(therapist, surgeon, dentist);
+
+            firstTherapistThread = new Thread(firstTherapist.SendToTreatingDoctor);
+            secondTherapistThread = new Thread(secondTherapist.SendToTreatingDoctor);
+
+            dentistThread = new Thread(dentist.AcceptPatient);
+            therapistThread = new Thread(surgeon.AcceptPatient);
+            surgeonThread = new Thread(dentist.AcceptPatient);
 
             firstTherapistThread.Start();
             secondTherapistThread.Start();
+
             dentistThread.Start();
             therapistThread.Start();
             surgeonThread.Start();
@@ -66,15 +60,16 @@ namespace lab4
             while (true)
             {
                 string patient = GetRequireDoctor();
-                if (firstTherapistPatientsQueue.Count <= secondTherapistPatientsQueue.Count)
+                Console.WriteLine("Came patient to doctor:" + patient);
+                if (firstTherapist.GetPatientCount() <= secondTherapist.GetPatientCount())
                 {
-                    firstTherapistPatientsQueue.Add(patient);
+                    firstTherapist.AddPatient(patient);
                 }
                 else
                 {
-                    secondTherapistPatientsQueue.Add(patient);
+                    secondTherapist.AddPatient(patient);
                 }
-                System.Threading.Thread.Sleep(50);
+                System.Threading.Thread.Sleep(1000);
             }
         }
 
@@ -101,103 +96,18 @@ namespace lab4
             switch (requireDoctorNoo)
             {
                 case 0:
-                    requireDoctor = DENTIST;
+                    requireDoctor = CTherapist.DENTIST;
                     break;
                 case 1:
-                    requireDoctor = THERAPIST;
+                    requireDoctor = CTherapist.THERAPIST;
                     break;
                 case 2:
-                    requireDoctor = SURGEON;
+                    requireDoctor = CTherapist.SURGEON;
                     break;
             }
 
             return requireDoctor;
         }
-
-        private void SendToTreatingDoctorFromFirstTherapist()
-        {
-            if (firstTherapistPatientsQueue.Count != 0)
-            {
-                System.Threading.Thread.Sleep(100);
-                string patient = firstTherapistPatientsQueue.First();
-                firstTherapistPatientsQueue.RemoveAt(0);
-                AddToDoctorQueue(ref patient);
-            }
-        }
-
-        private void SendToTreatingDoctorFromSecondTherapist()
-        {
-            while (true)
-            {
-                if (secondTherapistPatientsQueue.Count != 0)
-                {
-                    System.Threading.Thread.Sleep(100);
-                    string patient = secondTherapistPatientsQueue.First();
-                    secondTherapistPatientsQueue.RemoveAt(0);
-                    AddToDoctorQueue(ref patient);
-                }
-            }
-        }
-
-        private void AddToDoctorQueue(ref string patient)
-        {
-            lock (this)
-            {
-                switch (patient)
-                {
-                    case DENTIST:
-                        dentistQueue.Add(patient);
-                        break;
-                    case THERAPIST:
-                        therapistQueue.Add(patient);
-                        break;
-                    case SURGEON:
-                        surgeonQueue.Add(patient);
-                        break;
-                }
-            }
-        }
-
-        private void ReceptionAtDentist()
-        {
-            while (true)
-            {
-                if (dentistQueue.Count != 0)
-                {
-                    System.Threading.Thread.Sleep(100);
-                    string dentist = dentistQueue.First();
-                    dentistQueue.RemoveAt(0);
-                    Console.Write(dentist + '\n');
-                }
-            }
-        }
-
-        private void ReceptionAtTherapist()
-        {
-            while (true)
-            {
-                if (therapistQueue.Count != 0)
-                {
-                    System.Threading.Thread.Sleep(100);
-                    string therapist = therapistQueue.First();
-                    therapistQueue.RemoveAt(0);
-                    Console.Write(therapist + '\n');
-                }
-            }
-        }
-
-        private void ReceptionAtSurgeon()
-        {
-            while (true)
-            {
-                if (surgeonQueue.Count != 0)
-                {
-                    System.Threading.Thread.Sleep(100);
-                    string surgeon = surgeonQueue.First();
-                    surgeonQueue.RemoveAt(0);
-                    Console.Write(surgeon + '\n');
-                }
-            }
-        }
     }
 }
+   
